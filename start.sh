@@ -98,6 +98,61 @@ lsof -ti:8080 2>/dev/null | xargs kill 2>/dev/null || true
 lsof -ti:8090 2>/dev/null | xargs kill 2>/dev/null || true
 sleep 1
 
+# ============================================================
+# 模型文件检测
+# ============================================================
+echo ""
+echo "检测模型文件..."
+
+MODEL_DIR="$SCRIPT_DIR/models"
+MODELS_MISSING=0
+
+check_model_dir() {
+    local name="$1"
+    local path="$2"
+    if [ -d "$path" ] && [ "$(ls -A "$path" 2>/dev/null)" ]; then
+        echo "  ✓ $name"
+    else
+        echo "  ✗ $name (缺失)"
+        MODELS_MISSING=$((MODELS_MISSING + 1))
+    fi
+}
+
+check_model_file() {
+    local name="$1"
+    local path="$2"
+    if [ -f "$path" ]; then
+        echo "  ✓ $name"
+    else
+        echo "  ✗ $name (缺失)"
+        MODELS_MISSING=$((MODELS_MISSING + 1))
+    fi
+}
+
+check_model_dir  "FLUX.2-klein-4B"                    "$MODEL_DIR/FLUX.2-klein-4B"
+check_model_dir  "Qwen3-TTS Base"                     "$MODEL_DIR/qwen3_tts_12hz_1_7b_base"
+check_model_dir  "Qwen3-TTS VoiceDesign"              "$MODEL_DIR/qwen3_tts_12hz_1_7b_voicedesign"
+check_model_file "Qwen3.5-27B-Q4_K_M (GGUF)"          "$MODEL_DIR/Qwen3.5-27B-Q4_K_M.gguf"
+check_model_dir  "Real-ESRGAN"                        "$MODEL_DIR/realesrgan"
+
+if [ "$MODELS_MISSING" -gt 0 ]; then
+    echo ""
+    echo "警告: $MODELS_MISSING 个模型缺失"
+    echo "请在启动前先下载模型:"
+    echo "  python download_model.py               # FLUX.2-klein-4B (~23G)"
+    echo "  python download_qwen_tts_model.py       # Qwen3-TTS (~8.6G)"
+    echo "  python download_novel_model.py          # Qwen3.5-27B GGUF (~16G)"
+    echo "  python download_realesrgan_model.py     # Real-ESRGAN (~128M)"
+    echo ""
+    read -p "是否继续启动? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+else
+    echo "所有模型已就绪"
+fi
+
 # API Key 环境变量配置
 # 可直接修改以下默认值，或通过命令行设置: API_KEY=xxx bash start.sh
 export API_KEY="${API_KEY:-sk-api-000000}"

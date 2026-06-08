@@ -136,13 +136,25 @@ imageGene/
 
 ## 模型
 
-| 模型 | 用途 | 文件 |
-|------|------|------|
-| FLUX.2-klein-4B | 图像生成 | `models/FLUX.2-klein-4B/` |
-| Qwen3-TTS-12Hz-1.7B | 语音合成 | `models/qwen3_tts_12hz_1_7b_voicedesign/` |
-| Qwen3-TTS-12Hz-1.7B-Base | 声音克隆 | `models/qwen3_tts_12hz_1_7b_base/` |
-| Qwen3.5-27B-Q4_K_M | 文本分析 | `models/Qwen3.5-27B-Q4_K_M.gguf` |
-| Real-ESRGAN x4plus | 图片超分 | `models/realesrgan/` |
+> 模型文件总约 48GB，由 `.gitignore` 排除，不纳入版本控制。
+> 克隆仓库后需运行对应的 `download_*.py` 脚本下载模型。
+
+| 模型 | 用途 | 大小 | 路径 |
+|------|------|------|------|
+| FLUX.2-klein-4B | 文生图 / 图生图 / 图像变体 | ~23 GB | `models/FLUX.2-klein-4B/` |
+| Qwen3-TTS-12Hz-1.7B VoiceDesign | 语音合成（声音描述生成语音） | ~4.3 GB | `models/qwen3_tts_12hz_1_7b_voicedesign/` |
+| Qwen3-TTS-12Hz-1.7B Base | 语音合成（声音克隆 / 预设角色） | ~4.3 GB | `models/qwen3_tts_12hz_1_7b_base/` |
+| Qwen3.5-27B-Q4_K_M (GGUF) | 小说文本分析 / 对话标记 / 格式化 | ~16 GB | `models/Qwen3.5-27B-Q4_K_M.gguf` |
+| Real-ESRGAN x4plus | 图片超分辨率放大（4x） | ~128 MB | `models/realesrgan/`
+
+### 下载模型
+
+```bash
+python download_model.py            # FLUX.2-klein-4B (~23G)
+python download_qwen_tts_model.py   # Qwen3-TTS Base + VoiceDesign (~8.6G)
+python download_novel_model.py      # Qwen3.5-27B GGUF (~16G)
+python download_realesrgan_model.py # Real-ESRGAN (~128M)
+```
 
 ## 详细文档
 

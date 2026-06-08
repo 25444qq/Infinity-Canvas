@@ -157,7 +157,14 @@ export const NovelLinesNode: React.FC<NovelLinesNodeProps> = ({
 
     const handleBatchGenerate = async () => {
         setIsBatchGenerating(true);
+        // 清除所有已生成的音频
         const len = lineDataRef.current.length;
+        const clearedLines = lineDataRef.current.map(l => ({
+            ...l,
+            audioUrl: undefined,
+            isGeneratingAudio: false,
+        }));
+        updateData(data.id, { lineData: clearedLines, mergeAudioUrl: undefined });
         for (let i = 0; i < len; i++) {
             await generateLineAudio(i);
             await new Promise(r => setTimeout(r, 1000));
@@ -209,9 +216,13 @@ export const NovelLinesNode: React.FC<NovelLinesNodeProps> = ({
 
     const handleMergePlay = () => {
         if (!data.mergeAudioUrl) return;
-        if (!mergeAudioRef.current) {
+        if (!mergeAudioRef.current || mergeAudioRef.current.src !== new URL(data.mergeAudioUrl, window.location.origin).href) {
+            if (mergeAudioRef.current) {
+                mergeAudioRef.current.pause();
+            }
             mergeAudioRef.current = new Audio(data.mergeAudioUrl);
             mergeAudioRef.current.onended = () => setIsMergePlaying(false);
+            setIsMergePlaying(false);
         }
         if (mergeAudioRef.current.paused) {
             mergeAudioRef.current.play().catch(() => {});

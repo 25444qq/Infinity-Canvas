@@ -2,6 +2,11 @@
 
 多模态 AI 服务平台，集成图像生成、语音合成、文本分析功能，提供基于节点的可视化无限画布前端界面。
 
+##面向人群：
+    **对小说文本进行音频话**： 可用自定义生成音频或用参考音频按照文本生成
+    **对小说文本进行标点符号标准化处理**：按照中文标点符号格式进行标准话处理
+    **需要简单生成AI图片**：可生成或编辑图片，分辨率为1K或2K，并可把图片放大2x或4x
+    
 ## 功能概览
 
 - **图像生成**: FLUX.2-Klein 文生图、图生图、图像变体
@@ -58,6 +63,14 @@ imageGene/
 
 ### 安装 & 启动
 
+一键启动：
+启动时会自动检测python环境和模型是否正确下载，如果缺失会自动下载。
+
+   ```bash
+   bash start.sh
+   ```
+   后端 API 服务运行在 `http://localhost:8080`，前端界面运行在 `http://localhost:8090`。
+
 1. 安装 Python 依赖：
    ```bash
    pip install -r requirements.txt
@@ -75,56 +88,6 @@ imageGene/
    ```bash
    cd frontend && npm install && npm run build
    ```
-
-4. 一键启动：
-   ```bash
-   bash start.sh
-   ```
-   后端 API 服务运行在 `http://localhost:8080`，前端界面运行在 `http://localhost:8090`。
-
-## API 端点
-
-### 图像 `/image/*`
-| 端点 | 方法 | 功能 |
-|------|------|------|
-| `/image/models` | GET | 列出图像模型 |
-| `/image/generate` | POST | 文生图 |
-| `/image/edit` | POST | 图像编辑 |
-| `/image/variations` | POST | 图像变体 |
-| `/image/upscale` | POST | 图片超分辨率放大 |
-| `/image/upscale/models` | GET | 超分模型列表 |
-
-### 音频 `/audio/*`
-| 端点 | 方法 | 功能 |
-|------|------|------|
-| `/audio/models` | GET | 列出音频模型 |
-| `/audio/tts` | POST | 文本转语音 |
-| `/audio/voices` | GET | 列出可用声音 |
-| `/audio/merge` | POST | 合并音频文件 |
-
-### 文本 `/text/*`
-| 端点 | 方法 | 功能 |
-|------|------|------|
-| `/text/models` | GET | 列出文本模型 |
-| `/text/analyze` | POST | 小说文本分析 |
-| `/text/lines/process` | POST | 对话标记处理 |
-| `/text/complete` | POST | 文本补全 |
-| `/text/format` | POST | 文本格式化 |
-
-### 前端代理 `/api/*`（端口 8090）
-前端服务器将所有 `/api/*` 请求转发到后端 `http://localhost:8080`，同时提供模型管理、配置等 API。
-
-## 环境变量
-
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `HOST` | 服务地址 | `0.0.0.0` |
-| `PORT` | 后端端口 | `8080` |
-| `DEBUG` | 调试模式 | `false` |
-| `DEEPSEEK_ENABLED` | 启用 DeepSeek | `false` |
-| `DEEPSEEK_API_KEY` | DeepSeek API Key | - |
-| `LM_STUDIO_ENABLED` | 启用 LM Studio | `false` |
-| `REALESRGAN_ENABLED` | 启用图片超分 | `true` |
 
 ## 前端功能
 

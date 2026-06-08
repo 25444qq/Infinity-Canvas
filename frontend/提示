@@ -1,0 +1,194 @@
+请严格将以下提供的文本内容作为分析蓝本，不要添加任何外部知识。
+你的任务是仔细阅读文本内容，用3000字以内总结文本主要内容，并从文本中提取所有人物的信息，以JSON格式（一个JSON对象或数组）输出。
+请确保为每个人物提取以下信息：
+- "name": 姓名，若无则返回 null。
+- "gender": 性别（男/女），若无则返回 null。
+- "personality": 性格特点（使用一个简短的字符串或字符串列表概括），若无则返回 null。
+- "physical_description": 人物外貌特写（如衣着、体型等），若无则返回 null。
+
+如果一个文本文件超过6兆，我要通过deepseek api上传并对文字内容进行归纳总结，比如，总结文本，提取文件中的人物，性格，性别，人物外貌特写等信息，我应该怎么做？
+对于超过6MB的文本文件，核心步骤就是分段读完文件，再调用API进行分析**。
+
+目前，deepseek-chat 模型的上下文窗口已经升级到了1M Tokens（约70-80万个汉字），通常足够直接处理你的6MB文件。不过，如果文件内容实在太大，也可以用分段的方法来稳妥处理。
+
+🚀 准备工作：评估文件大小与选用模型
+开始处理前，需要先评估一下你的文件，这能帮你选择最合适的策略：
+
+判断文件是否超过上下文限制：最准确的方法是使用 tiktoken 库来统计你的文本文件转换为Token后的数量，而不是只看文件大小，因为文件大小本身不能精确反映Token数量。
+
+选择合适的模型与接口：
+
+deepseek-chat：这是一个快速模型，适合通用的文本分析任务。
+
+deepseek-reasoner：其思考模型，适用于需要复杂推理、逻辑分析的任务。
+
+/chat/completions：这是对话补全接口，也是我们上述两种模型进行交互的主要入口。
+
+方案一：一次性处理（优先推荐）
+如果你的文件Token总数不超过1M，可以选择一次性将所有文本内容“喂”给模型。这种方法最简单，也能最大程度保留上下文的连贯性。
+
+处理流程：
+
+读取文本：用 Python 代码读取文件内容到一个字符串变量。
+
+拼接消息：将读取到的文本和你的指令（提示词）组合，构建API调用所需的消息体。
+
+调用API：发送请求，等待模型一次性生成最终的结构化JSON结果。
+
+python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ.get("DEEPSEEK_API_KEY"), # 请替换为你的真实API Key
+    base_url="https://api.deepseek.com",
+)
+
+file_path = "your_file.txt" # 替换为你的文件路径
+
+try:
+    with open(file_path, "r", encoding="utf-8") as f:
+        file_content = f.read()
+    print(f"文件读取成功，'{file_path}' 总长度为 {len(file_content)} 个字符。")
+except FileNotFoundError:
+    print(f"错误：在路径 '{file_path}' 未找到文件。")
+    exit()
+
+# 构建结构化输出的提示词
+prompt = f"""
+请严格将以下提供的文本内容作为分析蓝本，不要添加任何外部知识。
+你的任务是仔细阅读文本内容，并从文本中提取所有人的信息，以JSON格式（一个JSON对象或数组）输出。
+请确保为每个人物提取以下信息：
+- "name": 姓名，若无则返回 null。
+- "gender": 性别（男/女），若无则返回 null。
+- "personality": 性格特点（使用一个简短的字符串或字符串列表概括），若无则返回 null。
+- "physical_description": 人物外貌特写（如衣着、体型等），若无则返回 null。
+
+文本内容如下：
+```text
+{file_content}
+"""
+
+发送 API 请求
+response = client.chat.completions.create(
+model="deepseek-chat", # 或 "deepseek-reasoner"
+messages=[
+{"role": "user", "content": prompt}
+],
+temperature=0.2, # 降低随机性，让结果更确定
+response_format={"type": "json_object"} # 关键！要求模型返回合法的 JSON 格式，这会显著提升输出质量
+)
+
+输出模型返回的 JSON 字符串
+json_data = response.choices[0].message.content
+print(json_data)
+
+text
+
+### 方案二：分块处理（备选方案）
+
+如果你的文件内容确实超过了1M Tokens的上下文窗口（这种情况比较少见），或者API返回了超出限制的错误，可以采用分段处理，然后再合并结果。
+
+虽然DeepSeek API本身支持分块读取大文件[reference:2]，但模型在分析时还是一次性处理多个片段会更有挑战。因此，我们可以在应用层将文件切分开，分别发送分析，最后再将结果合并。
+
+**处理流程：**
+
+1.  **文本分块**：将长文按段落或特定的字符数量（例如，每块5000个字符）分割成多个独立的文本块 `chunks`。
+2.  **块级分析**：对每一个文本块 `chunk`，调用API进行初步分析，提取该块中的人物信息。
+3.  **结果合并与去重**：收集所有块的分析结果（为JSON格式）。检查并合并重复的人物信息。
+4.  **汇总整理**：对合并后的人物列表进行最终整理，输出最终的结构化数据。
+
+```python
+import os
+import json
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ.get("DEEPSEEK_API_KEY"),
+    base_url="https://api.deepseek.com",
+)
+
+def chunk_text(text, max_chunk_size=5000):
+    chunks = []
+    while len(text) > max_chunk_size:
+        split_pos = text[:max_chunk_size].rfind('\n\n')
+        if split_pos == -1:
+            split_pos = text[:max_chunk_size].rfind('\n')
+        if split_pos == -1:
+            split_pos = max_chunk_size
+        chunks.append(text[:split_pos])
+        text = text[split_pos:]
+    chunks.append(text)
+    return chunks
+
+file_path = "your_file.txt"
+try:
+    with open(file_path, "r", encoding="utf-8") as f:
+        file_content = f.read()
+    print(f"文件读取成功，总长度为 {len(file_content)} 个字符。")
+except FileNotFoundError:
+    print(f"错误：在路径 '{file_path}' 未找到文件。")
+    exit()
+
+# 将文件内容分块
+chunks = chunk_text(file_content)
+all_people = []
+
+for i, chunk in enumerate(chunks):
+    prompt = f"""
+    仔细阅读以下文本片段（第{i+1}部分），从中提取人物的信息。以JSON数组（list of objects）的形式输出，如果没有找到人物，请输出空列表。
+    请确保为每个人物提取以下信息：
+    - "name": 姓名，若无则返回 null
+    - "gender": 性别（男或女），若无则返回 null
+    - "personality": 性格特点，若无则返回 null
+    - "physical_description": 人物外貌特写，若无则返回 null
+
+    文本内容：
+    ```text
+    {chunk}
+"""
+try:
+response = client.chat.completions.create(
+model="deepseek-chat",
+messages=[{"role": "user", "content": prompt}],
+temperature=0.2, # 保持较低的创造力，强调精准提取
+response_format={"type": "json_object"} # 同样要求 JSON 格式输出
+)
+
+解析JSON并合并结果
+chunk_people = json.loads(response.choices[0].message.content).get("people", [])
+
+这里需要简单去重逻辑，比方说用 name 去重
+current_names = {p["name"] for p in all_people if p["name"] is not None}
+for person in chunk_people:
+if person.get("name") not in current_names:
+all_people.append(person)
+print(f"第 {i+1} 块处理完成。")
+except Exception as e:
+print(f"处理第 {i+1} 块时出错：{e}")
+
+输出最终合并的所有人物信息
+print(json.dumps({"people": all_people}, indent=2, ensure_ascii=False))
+
+text
+
+### 🛠️ 核心提示词设计
+
+为了让模型精准完成任务，提示词需要包含以下要素：
+*   **角色定位**：明确告诉模型，它是一位专业的信息提取工具[reference:3]。
+*   **任务边界**：指示它“仅从提供的文本中提取”，以防模型编造信息[reference:4]。
+*   **错误处理**：明确无相关信息时返回 `NULL` 或 `None`，而不是强行猜测[reference:5]。
+*   **输出格式**：指定输出为JSON，并要求可解析的特定键值，以便程序自动处理[reference:6][reference:7][reference:8]。
+*   **约束行为**：使用较低 `temperature` 参数（如`temperature=0.2`）能有效降低结果的随机性，让模型输出更稳定一致的结果[reference:9]，`response_format={"type": "json_object"}`则能确保输出是标准的JSON格式。
+
+### 📌 常见问题与优化建议
+
+| 问题 | 可能原因 | 解决方案 |
+| :--- | :--- | :--- |
+| API返回 `'NoneType' is not iterable` | 预测的输出值丢失或格式不符 | 调整提示词，强调必须输出所有字段；或在代码中增加严格的错误处理，用`try...except`来捕获异常。 |
+| `temperature` 参数的作用 | 控制模型生成的随机性 | 降低 `temperature`（如设为0.2）能让模型输出更稳定，这在需要确定答案的任务（如信息提取）中非常有利；而提高 `temperature` 则能让模型更有创造力，适合故事续写等场景[reference:10]。 |
+| 模型遗漏了部分人物 | 可能提示词不明确，或文本表述含糊 | 在提示词中加入关键信号词以引导模型。例如：“请特别注意文本中所有‘某某说’、‘据了解’、‘据悉’等句式引导的人物信息。” |
+| 人物属性被误判 | 可能上下文或提示词信息不精确 | 在提示词中明确判断标准。例如：“‘性别’字段仅根据人称代词（‘他’/‘她’）或明确的称谓（‘先生’/‘女士’）进行判断，若无法判断请返回 `null`。” |
+| 合并结果时产生重复 | 分块策略时，同一个人物信息可能出现在多个文本块中 | 在合并阶段增加去重逻辑。例如，以 `name` 字段为键，若`name`为空，则根据 `identity` 等唯一性更强的字段进行合并。 |
+
+通过上述方法，无论是大文件的文本总结，还是精准的人物信息提取，都可以高效、准确地在DeepSeek API上实现。

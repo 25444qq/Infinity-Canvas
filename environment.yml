@@ -1,0 +1,9 @@
+name: llama_chatbot
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - ffmpeg
+  - pip
+  - pip:
+      - -r requirements.txt

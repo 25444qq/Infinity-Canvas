@@ -1,0 +1,236 @@
+{
+  "api_version": "1.0",
+  "server": "0.0.0.0:8080",
+  "endpoints": {
+    "image": {
+      "description": "FLUX.2 图像生成相关接口",
+      "endpoints": [
+        {
+          "path": "/image/models",
+          "method": "GET",
+          "description": "获取图像模型状态",
+          "response_example": {
+            "object": "list",
+            "data": [
+              {
+                "id": "FLUX.2-klein-9B",
+                "object": "model",
+                "created": 1714537200,
+                "owned_by": "black-forest-labs",
+                "type": "image_generation",
+                "status": "loaded",
+                "path": "/models/FLUX.2-klein-9B"
+              }
+            ]
+          }
+        },
+        {
+          "path": "/image/generate",
+          "method": "POST",
+          "description": "根据文本提示生成图像",
+          "request_example": {
+            "prompt": "一只可爱的猫在草地上玩耍",
+            "model": "FLUX.2-klein-9B",
+            "n": 1,
+            "size": "1024x1024",
+            "response_format": "url",
+            "seed": 42,
+            "guidance_scale": 3.5,
+            "num_inference_steps": 28
+          },
+          "response_example": {
+            "created": 1714537200,
+            "data": [
+              {
+                "url": "/outputs/abc123.png"
+              }
+            ]
+          }
+        },
+        {
+          "path": "/image/edit",
+          "method": "POST",
+          "description": "根据参考图像和提示进行图像编辑",
+          "request_example": {
+            "prompt": "将猫变成狗",
+            "image": "data:image/png;base64,iVBORw0KGgo...",
+            "n": 1,
+            "size": "1024x1024"
+          }
+        },
+        {
+          "path": "/image/variations",
+          "method": "POST",
+          "description": "生成参考图像的变体",
+          "request_example": {
+            "image": "data:image/png;base64,iVBORw0KGgo...",
+            "n": 4,
+            "size": "1024x1024"
+          }
+        }
+      ]
+    },
+    "audio": {
+      "description": "Qwen3-TTS 语音合成相关接口",
+      "endpoints": [
+        {
+          "path": "/audio/models",
+          "method": "GET",
+          "description": "获取语音合成模型状态",
+          "response_example": {
+            "object": "list",
+            "data": [
+              {
+                "id": "Qwen3-TTS-12Hz-1.7B",
+                "object": "model",
+                "created": 1714537200,
+                "owned_by": "qwen",
+                "type": "text_to_speech",
+                "status": "loaded",
+                "path": "/models/qwen3_tts_12hz_1_7b_voicedesign"
+              }
+            ]
+          }
+        },
+        {
+          "path": "/audio/tts",
+          "method": "POST",
+          "description": "文本转语音（通过 model 参数选择 Qwen3-TTS 或 MOSS-TTS）",
+          "request_example": {
+            "text": "你好，这是一个测试",
+            "model": "qwen3-tts",
+            "language": "zh",
+            "voice": "Cherry",
+            "speed": 1.0,
+            "response_format": "url",
+            "audio_format": "wav"
+          },
+          "response_example": {
+            "id": "abc123",
+            "created": 1714537200,
+            "model": "Qwen3-TTS-12Hz-1.7B",
+            "format": "wav",
+            "data": {
+              "url": "/outputs/qwen_tts_abc123.wav"
+            }
+          },
+          "notes": [
+            "model 参数可选值: qwen3-tts (默认), moss-tts",
+            "qwen3-tts 支持 voice, voice_description, ref_audio 参数",
+            "moss-tts 不支持 voice 参数，使用默认音色"
+          ]
+        },
+        {
+          "path": "/audio/voices",
+          "method": "GET",
+          "description": "获取可用音色列表"
+        },
+        {
+          "path": "/audio/status",
+          "method": "GET",
+          "description": "获取TTS模型加载状态",
+          "response_example": {
+            "loaded": true,
+            "model": "Qwen3-TTS-12Hz-1.7B"
+          }
+        },
+        {
+          "path": "/audio/merge",
+          "method": "POST",
+          "description": "合并多个音频文件并进行音量归一化",
+          "request_example": {
+            "audio_files": [
+              "audio1.wav",
+              "audio2.wav"
+            ],
+            "pause_between": 0.3
+          }
+        }
+      ]
+    },
+    "text": {
+      "description": "Qwen3.5-27B 文本分析相关接口",
+      "endpoints": [
+        {
+          "path": "/text/models",
+          "method": "GET",
+          "description": "获取文本模型状态"
+        },
+        {
+          "path": "/text/analyze",
+          "method": "POST",
+          "description": "分析小说文本",
+          "request_example": {
+            "text": "SGVsbG8gV29ybGQh"
+          }
+        },
+        {
+          "path": "/text/lines/process",
+          "method": "POST",
+          "description": "处理小说对白",
+          "request_example": {
+            "text": "SGVsbG8gV29ybGQh"
+          }
+        }
+      ]
+    },
+    "moss-tts": {
+      "description": "MOSS-TTS 语音合成相关接口（待实现）",
+      "endpoints": [
+        {
+          "path": "/moss-tts/models",
+          "method": "GET",
+          "description": "获取MOSS-TTS模型状态"
+        },
+        {
+          "path": "/moss-tts/synthesize",
+          "method": "POST",
+          "description": "使用MOSS-TTS合成语音",
+          "request_example": {
+            "text": "你好",
+            "language": "zh",
+            "speed": 1.0
+          }
+        }
+      ]
+    },
+    "system": {
+      "description": "系统相关接口",
+      "endpoints": [
+        {
+          "path": "/health",
+          "method": "GET",
+          "description": "健康检查",
+          "response_example": {
+            "status": "ok",
+            "model_loaded": true,
+            "model": "FLUX.2-klein-9B"
+          }
+        },
+        {
+          "path": "/docs",
+          "method": "GET",
+          "description": "获取API文档"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "base_url": "http://0.0.0.0:8080",
+    "api_keys": {
+      "global": "",
+      "image": "sk-image-123456",
+      "audio": "sk-audio-123456",
+      "text": "sk-text-123456",
+      "video": "sk-video-123456"
+    },
+    "output_dir": "/media/chengy/MYRAID0/imageGene/outputs",
+    "notes": [
+      "所有POST请求需要设置Content-Type为application/json",
+      "音频输出文件存放在/outputs目录下",
+      "大文件建议使用url格式返回",
+      "API Key认证: 在请求头中添加 Authorization: Bearer <your_key>",
+      "每个类别可单独设置API Key，也可使用全局API Key"
+    ]
+  }
+}

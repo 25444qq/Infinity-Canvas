@@ -1,0 +1,5 @@
+{
+  "name": "画布025",
+  "description": "A visual, node-based infinite canvas for orchestrating multimodal AI generation workflows using Gemini and Veo models.",
+  "requestFramePermissions": []
+}
